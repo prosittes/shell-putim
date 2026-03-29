@@ -1,0 +1,680 @@
+# Criar a página do cliente atualizada com suporte a adicionais vinculados por produto
+# Mantendo todo o layout existente e adicionando a funcionalidade de seleção de adicionais
+
+html_content = '''<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ateliê Mariana Almeida - Bolos & Doces Artesanais</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --rose-pastel: #fdf2f2;
+            --rose-medio: #fce7e7;
+            --rose-escuro: #fda4af;
+            --bege: #faf7f5;
+            --marrom-claro: #a67c52;
+            --marrom: #5d4037;
+            --marrom-escuro: #3e2723;
+            --creme: #fff8f0;
+        }
+        
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: var(--bege);
+            color: var(--marrom-escuro);
+        }
+        
+        h1, h2, h3, h4, .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .gradient-rose {
+            background: linear-gradient(135deg, #fdf2f2 0%, #fce7e7 100%);
+        }
+        
+        .gradient-hero {
+            background: linear-gradient(135deg, var(--rose-pastel) 0%, var(--creme) 50%, var(--bege) 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 10px 40px -10px rgba(166, 124, 82, 0.15);
+        }
+        
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -10px rgba(166, 124, 82, 0.25);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--marrom) 0%, var(--marrom-escuro) 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(93, 64, 55, 0.3);
+        }
+        
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .checkbox-custom {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--marrom-claro);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .checkbox-custom:checked {
+            background-color: var(--marrom);
+            border-color: var(--marrom);
+        }
+        
+        .checkbox-custom:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            top: -2px;
+            left: 3px;
+        }
+        
+        .adicional-item {
+            transition: all 0.2s ease;
+        }
+        
+        .adicional-item:hover {
+            background-color: #f5ebe0;
+        }
+        
+        .adicional-item.selected {
+            background-color: #e8d5c4;
+            border-color: var(--marrom-claro);
+        }
+        
+        .modal-backdrop {
+            backdrop-filter: blur(5px);
+        }
+        
+        .status-aberto {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        }
+        
+        .status-fechado {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .decorative-line {
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--marrom-claro) 50%, transparent 100%);
+        }
+        
+        /* Badge de adicionais no card */
+        .badge-adicionais {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        /* Animação de pulso para o total */
+        @keyframes pulse-total {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .total-atualizado {
+            animation: pulse-total 0.3s ease;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body class="antialiased">
+
+    <!-- BARRA DE STATUS DA LOJA -->
+    <div id="status-loja-bar" class="fixed top-0 left-0 right-0 z-50 text-white text-center py-2 px-4 text-sm font-semibold transition-all duration-300">
+        <span id="status-loja-texto">Carregando...</span>
+    </div>
+
+    <!-- HEADER -->
+    <header class="pt-16 pb-8 px-4 gradient-hero">
+        <div class="max-w-6xl mx-auto text-center">
+            <div class="mb-4 text-[#a67c52] text-sm tracking-[0.3em] uppercase font-semibold">Confeitaria Artesanal</div>
+            <h1 class="text-5xl md:text-7xl font-bold text-[#5d4037] mb-4 italic">
+                Ateliê Mariana Almeida
+            </h1>
+            <div class="decorative-line w-32 mx-auto mb-4"></div>
+            <p class="text-lg text-[#8d6e63] max-w-2xl mx-auto font-light leading-relaxed">
+                Bolos e doces feitos com amor, ingredientes selecionados e muito carinho para tornar seus momentos ainda mais especiais.
+            </p>
+            <div class="mt-6 flex justify-center gap-4 text-[#a67c52]">
+                <i class="fas fa-heart"></i>
+                <i class="fas fa-birthday-cake"></i>
+                <i class="fas fa-heart"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- SEÇÃO DE PRODUTOS -->
+    <main class="max-w-6xl mx-auto px-4 py-12">
+        
+        <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-[#5d4037] mb-3">Nossos Bolos</h2>
+            <p class="text-[#a1887f]">Escolha seu favorito e personalize do seu jeito</p>
+            <div class="decorative-line w-24 mx-auto mt-4"></div>
+        </div>
+
+        <!-- GRID DE PRODUTOS -->
+        <div id="produtos-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="col-span-full text-center py-12 text-[#a1887f]">
+                <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
+                <p>Carregando delícias...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL DE PEDIDO -->
+    <div id="modal-pedido" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all scale-95 opacity-0" id="modal-content">
+            
+            <!-- HEADER MODAL -->
+            <div class="relative h-48 bg-gradient-to-br from-[#fdf2f2] to-[#fce7e7] rounded-t-3xl overflow-hidden">
+                <img id="modal-img" src="" class="w-full h-full object-cover">
+                <button onclick="fecharModal()" class="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform">
+                    <i class="fas fa-times text-[#5d4037]"></i>
+                </button>
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
+                    <h3 id="modal-nome" class="text-2xl font-bold text-white font-serif"></h3>
+                    <p id="modal-preco-base" class="text-white/90 text-sm">Preço base: R$ 0,00</p>
+                </div>
+            </div>
+
+            <!-- CONTEÚDO MODAL -->
+            <div class="p-6 space-y-6">
+                
+                <!-- DESCRIÇÃO -->
+                <div>
+                    <p id="modal-desc" class="text-[#8d6e63] text-sm leading-relaxed"></p>
+                </div>
+
+                <!-- ESPECIFICAÇÕES -->
+                <div id="modal-especificacoes-container" class="hidden">
+                    <h4 class="font-bold text-[#5d4037] mb-2 text-sm uppercase tracking-wider">Detalhes do Produto</h4>
+                    <div id="modal-especificacoes" class="bg-[#faf7f5] p-4 rounded-xl text-sm text-[#6d4c41] whitespace-pre-line"></div>
+                </div>
+
+                <!-- ADICIONAIS - ATUALIZADO PARA FILTRAR POR PRODUTO -->
+                <div id="modal-adicionais-container" class="hidden">
+                    <h4 class="font-bold text-[#5d4037] mb-3 text-sm uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-[#a67c52]"></i>
+                        Adicionais Disponíveis
+                    </h4>
+                    <div id="lista-adicionais" class="space-y-2">
+                        <!-- Adicionais carregados dinamicamente baseado no produto -->
+                    </div>
+                    <p id="sem-adicionais-msg" class="hidden text-[#a1887f] text-sm italic py-2">Nenhum adicional disponível para este produto</p>
+                </div>
+
+                <!-- RESUMO DO PEDIDO -->
+                <div class="bg-[#faf7f5] rounded-xl p-4 space-y-2">
+                    <div class="flex justify-between text-sm text-[#8d6e63]">
+                        <span>Produto:</span>
+                        <span id="resumo-produto" class="font-medium text-[#5d4037]">R$ 0,00</span>
+                    </div>
+                    <div id="resumo-adicionais" class="hidden">
+                        <div class="flex justify-between text-sm text-[#8d6e63]">
+                            <span>Adicionais:</span>
+                            <span id="valor-adicionais" class="font-medium text-[#5d4037]">R$ 0,00</span>
+                        </div>
+                        <div id="lista-adicionais-selecionados" class="text-xs text-[#a67c52] mt-1 pl-4 border-l-2 border-[#d7ccc8]"></div>
+                    </div>
+                    <div class="border-t border-[#e8d5c4] pt-2 mt-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-[#5d4037]">Total:</span>
+                            <span id="modal-total" class="text-2xl font-bold text-[#5d4037] total-atualizado">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTÃO WHATSAPP -->
+                <button id="btn-whatsapp" onclick="enviarWhatsApp()" class="w-full btn-whatsapp text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:shadow-lg transition-all">
+                    <i class="fab fa-whatsapp text-2xl"></i>
+                    <span>Fazer Pedido pelo WhatsApp</span>
+                </button>
+                
+                <!-- AVISO LOJA FECHADA -->
+                <div id="aviso-fechado" class="hidden bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center">
+                    <i class="fas fa-clock mb-2 text-2xl"></i>
+                    <p class="font-semibold">Loja Fechada no Momento</p>
+                    <p class="text-sm">Volte mais tarde ou entre em contato para agendar seu pedido.</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-[#e8d5c4] mt-16">
+        <div class="max-w-6xl mx-auto px-4 py-12">
+            <div class="text-center space-y-4">
+                <h3 class="text-2xl font-serif font-bold text-[#5d4037]">Ateliê Mariana Almeida</h3>
+                <p class="text-[#a67c52] italic">"Feito com amor ❤️"</p>
+                
+                <div class="flex justify-center gap-6 my-6">
+                    <a href="#" class="w-10 h-10 rounded-full bg-[#fdf2f2] flex items-center justify-center text-[#5d4037] hover:bg-[#5d4037] hover:text-white transition-all">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-[#fdf2f2] flex items-center justify-center text-[#5d4037] hover:bg-[#5d4037] hover:text-white transition-all">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-[#fdf2f2] flex items-center justify-center text-[#5d4037] hover:bg-[#5d4037] hover:text-white transition-all">
+                        <i class="fas fa-envelope"></i>
+                    </a>
+                </div>
+                
+                <div class="pt-6 border-t border-[#f0e6e0]">
+                    <p class="text-[#a1887f] text-sm">
+                        Desenvolvido por <span class="font-semibold text-[#5d4037]">Prosittes</span> © 2026
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA93ymW78OYYHc2qGoF-5D_RgWdCzkxh58",
+            authDomain: "atelie-mariana.firebaseapp.com",
+            projectId: "atelie-mariana",
+            storageBucket: "atelie-mariana.firebasestorage.app",
+            messagingSenderId: "416743252478",
+            appId: "1:416743252478:web:543a9c03574dfca3d960af"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // VARIÁVEIS GLOBAIS
+        let produtoAtual = null;
+        let adicionaisSelecionados = [];
+        let todosAdicionais = []; // Todos os adicionais do Firebase
+        let statusLoja = 'fechada';
+
+        // INICIALIZAR
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarStatusLoja();
+            carregarProdutos();
+            carregarAdicionais();
+        });
+
+        // CARREGAR STATUS DA LOJA
+        function carregarStatusLoja() {
+            onSnapshot(doc(db, "config", "loja"), (doc) => {
+                if (doc.exists()) {
+                    statusLoja = doc.data().status || 'fechada';
+                    atualizarBarraStatus();
+                }
+            });
+        }
+
+        function atualizarBarraStatus() {
+            const barra = document.getElementById('status-loja-bar');
+            const texto = document.getElementById('status-loja-texto');
+            
+            if (statusLoja === 'aberta') {
+                barra.className = 'fixed top-0 left-0 right-0 z-50 status-aberto text-white text-center py-2 px-4 text-sm font-semibold transition-all duration-300';
+                texto.innerHTML = '<i class="fas fa-store mr-2"></i> Loja Aberta - Faça seu pedido!';
+            } else {
+                barra.className = 'fixed top-0 left-0 right-0 z-50 status-fechado text-white text-center py-2 px-4 text-sm font-semibold transition-all duration-300';
+                texto.innerHTML = '<i class="fas fa-clock mr-2"></i> Loja Fechada - Volte mais tarde';
+            }
+        }
+
+        // CARREGAR PRODUTOS
+        function carregarProdutos() {
+            onSnapshot(collection(db, "produtos"), (snapshot) => {
+                const grid = document.getElementById('produtos-grid');
+                grid.innerHTML = '';
+                
+                const produtosAtivos = [];
+                snapshot.forEach((doc) => {
+                    const produto = { id: doc.id, ...doc.data() };
+                    if (produto.status === 'ativo') {
+                        produtosAtivos.push(produto);
+                    }
+                });
+
+                if (produtosAtivos.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-[#a1887f]">
+                            <i class="fas fa-cookie-bite text-4xl mb-4"></i>
+                            <p>Nenhum produto disponível no momento</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                produtosAtivos.forEach((produto, index) => {
+                    // Contar quantos adicionais estão disponíveis para este produto
+                    const qtdAdicionais = contarAdicionaisDisponiveis(produto.id);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-3xl overflow-hidden card-shadow hover-lift fade-in';
+                    card.style.animationDelay = `${index * 0.1}s`;
+                    
+                    let badgeAdicionais = '';
+                    if (qtdAdicionais > 0) {
+                        badgeAdicionais = `
+                            <div class="absolute top-3 right-3 badge-adicionais text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                                <i class="fas fa-plus mr-1"></i>${qtdAdicionais} adicionais
+                            </div>
+                        `;
+                    }
+                    
+                    card.innerHTML = `
+                        <div class="relative h-64 overflow-hidden group">
+                            <img src="${produto.foto || 'https://via.placeholder.com/400x300?text=Sem+Foto'}" 
+                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                 onerror="this.src='https://via.placeholder.com/400x300?text=Sem+Foto'">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            ${badgeAdicionais}
+                        </div>
+                        <div class="p-6">
+                            <h3 class="text-xl font-bold text-[#5d4037] mb-2 font-serif">${produto.nome}</h3>
+                            <p class="text-[#a1887f] text-sm mb-4 line-clamp-2">${produto.descricao || ''}</p>
+                            
+                            <div class="flex items-center justify-between">
+                                <span class="text-2xl font-bold text-[#5d4037]">R$ ${produto.preco ? produto.preco.toFixed(2) : '0.00'}</span>
+                                <button onclick="abrirModal('${produto.id}')" class="btn-primary text-white px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2">
+                                    <span>Pedir</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            });
+        }
+
+        // CONTAR ADICIONAIS DISPONÍVEIS PARA UM PRODUTO
+        function contarAdicionaisDisponiveis(produtoId) {
+            return todosAdicionais.filter(adicional => {
+                // Adicional é válido se:
+                // 1. Não tem produtoId (é global) OU
+                // 2. Tem produtoId igual ao produto atual
+                return !adicional.produtoId || adicional.produtoId === produtoId;
+            }).length;
+        }
+
+        // CARREGAR TODOS OS ADICIONAIS DO FIREBASE
+        function carregarAdicionais() {
+            onSnapshot(collection(db, "adicionais"), (snapshot) => {
+                todosAdicionais = [];
+                snapshot.forEach((doc) => {
+                    const adicional = { id: doc.id, ...doc.data() };
+                    if (adicional.status === 'ativo') {
+                        todosAdicionais.push(adicional);
+                    }
+                });
+                // Recarregar produtos para atualizar os badges de adicionais
+                carregarProdutos();
+            });
+        }
+
+        // OBTER ADICIONAIS DISPONÍVEIS PARA UM PRODUTO ESPECÍFICO
+        function getAdicionaisDoProduto(produtoId) {
+            return todosAdicionais.filter(adicional => {
+                // Se não tem produtoId, é global (disponível para todos)
+                // Se tem produtoId, só mostra se for igual ao produto atual
+                return !adicional.produtoId || adicional.produtoId === produtoId;
+            });
+        }
+
+        // ABRIR MODAL DE PEDIDO
+        window.abrirModal = async (produtoId) => {
+            const docRef = doc(db, "produtos", produtoId);
+            const docSnap = await getDoc(docRef);
+            
+            if (!docSnap.exists()) return;
+            
+            produtoAtual = { id: produtoId, ...docSnap.data() };
+            adicionaisSelecionados = [];
+            
+            // Preencher dados básicos
+            document.getElementById('modal-img').src = produtoAtual.foto || '';
+            document.getElementById('modal-nome').textContent = produtoAtual.nome;
+            document.getElementById('modal-preco-base').textContent = `Preço base: R$ ${produtoAtual.preco.toFixed(2)}`;
+            document.getElementById('modal-desc').textContent = produtoAtual.descricao || '';
+            
+            // Especificações
+            const espContainer = document.getElementById('modal-especificacoes-container');
+            if (produtoAtual.especificacoes && produtoAtual.especificacoes.trim()) {
+                document.getElementById('modal-especificacoes').textContent = produtoAtual.especificacoes;
+                espContainer.classList.remove('hidden');
+            } else {
+                espContainer.classList.add('hidden');
+            }
+            
+            // Carregar adicionais específicos deste produto
+            renderizarAdicionais(produtoId);
+            
+            // Atualizar total
+            atualizarTotal();
+            
+            // Configurar botão WhatsApp baseado no status da loja
+            const btnWhats = document.getElementById('btn-whatsapp');
+            const avisoFechado = document.getElementById('aviso-fechado');
+            
+            if (statusLoja === 'aberta') {
+                btnWhats.classList.remove('hidden');
+                avisoFechado.classList.add('hidden');
+            } else {
+                btnWhats.classList.add('hidden');
+                avisoFechado.classList.remove('hidden');
+            }
+            
+            // Mostrar modal
+            const modal = document.getElementById('modal-pedido');
+            const content = document.getElementById('modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        };
+
+        // RENDERIZAR ADICIONAIS FILTRADOS POR PRODUTO
+        function renderizarAdicionais(produtoId) {
+            const container = document.getElementById('lista-adicionais');
+            const containerPai = document.getElementById('modal-adicionais-container');
+            const msgSemAdicionais = document.getElementById('sem-adicionais-msg');
+            
+            container.innerHTML = '';
+            
+            // Filtrar adicionais para este produto específico
+            const adicionaisDoProduto = getAdicionaisDoProduto(produtoId);
+            
+            if (adicionaisDoProduto.length === 0) {
+                // Não há adicionais para este produto
+                containerPai.classList.add('hidden');
+                msgSemAdicionais.classList.add('hidden');
+                return;
+            }
+            
+            // Mostrar container de adicionais
+            containerPai.classList.remove('hidden');
+            msgSemAdicionais.classList.add('hidden');
+            
+            adicionaisDoProduto.forEach((adicional) => {
+                const div = document.createElement('div');
+                div.className = 'adicional-item flex items-center justify-between p-3 bg-[#faf7f5] rounded-xl border border-transparent cursor-pointer';
+                div.dataset.id = adicional.id;
+                
+                div.onclick = (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = div.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        toggleAdicional(adicional, checkbox.checked, div);
+                    }
+                };
+                
+                // Verificar se é um adicional global ou específico
+                const tipoAdicional = !adicional.produtoId ? 
+                    '<span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-2">Geral</span>' : 
+                    '<span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-2">Específico</span>';
+                
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" 
+                               id="adicional-${adicional.id}"
+                               class="checkbox-custom" 
+                               onchange="toggleAdicional(${JSON.stringify(adicional).replace(/"/g, '&quot;')}, this.checked, this.closest('.adicional-item'))">
+                        <label for="adicional-${adicional.id}" class="text-[#5d4037] font-medium cursor-pointer select-none flex items-center">
+                            ${adicional.nome}
+                            ${tipoAdicional}
+                        </label>
+                    </div>
+                    <span class="text-[#a67c52] font-bold">+ R$ ${adicional.valor.toFixed(2)}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        window.toggleAdicional = (adicional, checked, elemento) => {
+            if (checked) {
+                adicionaisSelecionados.push(adicional);
+                if (elemento) elemento.classList.add('selected');
+            } else {
+                adicionaisSelecionados = adicionaisSelecionados.filter(a => a.id !== adicional.id);
+                if (elemento) elemento.classList.remove('selected');
+            }
+            atualizarTotal();
+        };
+
+        function atualizarTotal() {
+            const precoBase = produtoAtual ? produtoAtual.preco : 0;
+            const valorAdicionais = adicionaisSelecionados.reduce((sum, a) => sum + a.valor, 0);
+            const total = precoBase + valorAdicionais;
+            
+            // Atualizar display do total com animação
+            const totalElement = document.getElementById('modal-total');
+            totalElement.textContent = `R$ ${total.toFixed(2)}`;
+            totalElement.classList.remove('total-atualizado');
+            void totalElement.offsetWidth; // Trigger reflow
+            totalElement.classList.add('total-atualizado');
+            
+            // Atualizar resumo
+            document.getElementById('resumo-produto').textContent = `R$ ${precoBase.toFixed(2)}`;
+            
+            const resumoAdicionais = document.getElementById('resumo-adicionais');
+            const listaAdicionaisSelecionados = document.getElementById('lista-adicionais-selecionados');
+            
+            if (adicionaisSelecionados.length > 0) {
+                resumoAdicionais.classList.remove('hidden');
+                document.getElementById('valor-adicionais').textContent = `R$ ${valorAdicionais.toFixed(2)}`;
+                listaAdicionaisSelecionados.innerHTML = adicionaisSelecionados.map(a => 
+                    `<div class="flex justify-between py-0.5">
+                        <span>+ ${a.nome}</span>
+                        <span>R$ ${a.valor.toFixed(2)}</span>
+                    </div>`
+                ).join('');
+            } else {
+                resumoAdicionais.classList.add('hidden');
+            }
+        }
+
+        window.fecharModal = () => {
+            const modal = document.getElementById('modal-pedido');
+            const content = document.getElementById('modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        };
+
+        window.enviarWhatsApp = () => {
+            if (!produtoAtual) return;
+            
+            const numeroWhatsApp = "5512996733698"; // Número do Ateliê
+            
+            const precoBase = produtoAtual.preco;
+            const valorAdicionais = adicionaisSelecionados.reduce((sum, a) => sum + a.valor, 0);
+            const total = precoBase + valorAdicionais;
+            
+            let mensagem = `🧁 *Pedido - Ateliê Mariana Almeida*\n\n`;
+            mensagem += `*Produto:* ${produtoAtual.nome}\n`;
+            mensagem += `*Preço Base:* R$ ${precoBase.toFixed(2)}\n`;
+            
+            if (adicionaisSelecionados.length > 0) {
+                mensagem += `\n*Adicionais:*\n`;
+                adicionaisSelecionados.forEach(a => {
+                    mensagem += `• ${a.nome} (+R$ ${a.valor.toFixed(2)})\n`;
+                });
+            }
+            
+            mensagem += `\n*💰 Total do Pedido:* R$ ${total.toFixed(2)}\n\n`;
+            mensagem += `Gostaria de finalizar meu pedido! 😊`;
+            
+            const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+            window.open(url, '_blank');
+        };
+
+        // Fechar modal ao clicar fora
+        document.getElementById('modal-pedido').addEventListener('click', (e) => {
+            if (e.target.id === 'modal-pedido') {
+                fecharModal();
+            }
+        });
+    </script>
+</body>
+</html>'''
+
+# Save the file
+output_path = '/mnt/kimi/output/index_cliente_atelie_mariana_atualizado.html'
+with open(output_path, 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print(f"✅ Página do cliente atualizada salva em: {output_path}")
+print(f"📄 Tamanho: {len(html_content)} caracteres")
+print("\n🎯 Principais melhorias implementadas:")
+print("   • Badge no card mostrando quantidade de adicionais disponíveis")
+print("   • Filtro de adicionais por produto (produtoId ou global)")
+print("   • Cálculo automático do total (base + adicionais)")
+print("   • Resumo detalhado do pedido no modal")
+print("   • Mensagem do WhatsApp com todos os detalhes")
+print("   • Compatibilidade total com produtos sem adicionais")
